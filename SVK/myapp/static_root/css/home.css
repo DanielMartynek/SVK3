@@ -1,0 +1,17 @@
+.fieldset{
+    display: inline;
+    width: auto;
+    float: left;
+    margin: 5px;
+}
+
+.LOADDATA{
+    margin-right: 20%;
+
+}
+
+.flex {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    }
