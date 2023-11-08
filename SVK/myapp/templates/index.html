@@ -1,0 +1,561 @@
+{%load static%}
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Medical Database</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        font-family: sans-serif;
+      }
+      .chartMenu {
+        width: 100vw;
+        height: 40px;
+        background: #1A1A1A;
+        color: rgba(54, 162, 235, 1);
+      }
+      .chartMenu p {
+        padding: 10px;
+        font-size: 20px;
+      }
+      .chartCard {
+        width: 100vw;
+        height: calc(100vh - 200px);
+        background: rgba(54, 162, 235, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .chartBox {
+        width: 900px;
+        padding: 20px;
+        border-radius: 20px;
+        border: solid 3px rgba(54, 162, 235, 1);
+        background: white;
+      }
+    </style>
+    <link href="{%static 'css/home.css'%}" rel="stylesheet">
+  </head>
+  <body>
+    <div class="chartMenu" align="center">
+      <p>Medical Database</p>
+    </div>
+<P align="left">
+      <a href="/help" >Help</a>
+    </P>
+      <P align="right">
+        Number of Patients: {{number_of_patients}}
+      </P>
+
+
+    <fieldset >
+      <legend align="center">LOAD DATA</legend>
+    <form method="POST" action = "/home/" enctype="multipart/form-data" class="form-control flex">
+    {% csrf_token %}
+      <input type = "file" name="database" value="Choose File" >
+      <div>
+      <label for="year_from" >Initial Year:</label>
+      <input type="number" id="year_from" name="year_from" min="2018" max="2100" value = 2018 class="LOADDATA">
+      </div>
+      <div>
+      <label for="year_to">Final Year:</label>
+      <input type="number" id="year_to" name="year_to" min="2018" max="2100" value = 2023 class="LOADDATA">
+      </div>
+      <input type = "submit" name = "submit">
+    </form>
+    </fieldset>
+    <fieldset class="fieldset">
+      <legend align="center">Patient</legend>
+
+        <input onclick="chartValues('Age')" type="radio" value="Age" name="chart" id = "age">
+        <label for="age" class="fieldset_label">Age</label>
+
+        <input onclick="chartValues('Gender')" type="radio" value="Gender" name="chart" id = "gender">
+        <label for="gender" class="fieldset_label">Gender</label>
+
+        <input onclick="chartValues('BMI')" type="radio" value="BMI" name="chart" id = "BMI">
+        <label for="BMI" class="fieldset_label">BMI</label>
+
+    </fieldset>
+    <fieldset class="fieldset">
+      <legend align="center">Operative Data</legend>
+      <input onclick="chartValues('Indication')" type="radio" value="Indication" name="chart" id="indication">
+      <label for="indication" class="fieldset_label">Elective/Emergency Surgery</label>
+      <input onclick="chartValues('Type')" type="radio" value="Type" name="chart" id = "type">
+      <label for="type" class="fieldset_label">Type of Surgery</label>
+      <input onclick="chartValues('Mesh')" type="radio" value="Mesh" name="chart" id = "mesh">
+      <label for="mesh" class="fieldset_label">Surgery w/wo Mesh</label>
+    </fieldset>
+    <fieldset class="fieldset">
+      <legend align="center">Complications</legend>
+    <input onclick="chartValues('Intraoperative')" type="radio" value="Intraoperative" name="chart" id = "intraoperative">
+    <label for="intraoperative" class="fieldset_label">Intraoperative</label>
+    <input onclick="chartValues('Problems')" type="radio" value="Problems" name="chart" id="problems">
+    <label for="problems" class="fieldset_label"> Day after Surgery</label>
+    </fieldset>
+    <fieldset class="fieldset">
+      <legend align="center">Classification</legend>
+    <input onclick="chartValues('Gender_class')" type="radio" value="Gender_class" name="chart" id = "gender_class">
+    <label for="gender_class" class="fieldset_label">Gender(BMI x AGE)</label>
+    <input onclick="chartValues('Problems_class')" type="radio" value="Problems_class" name="chart" id = "problems_class">
+    <label for="problems_class" class="fieldset_label">Complications Day after Surgery(BMI x AGE)</label>
+    </fieldset>
+
+    <div class="chartCard">
+      <div class="chartBox">
+        <canvas id="myChart"></canvas>
+      </div>
+    </div>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"
+            integrity="sha512-Hn1w6YiiFw6p6S2lXv6yKeqTk0PLVzeCwWY9n32beuPjQ5HLcvz5l2QsP+KilEr1ws37rCTw3bZpvfvVIeTh0Q=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script> <!--MIT LICENCE-->
+
+    <!--Chart.register(chartjs-plugin-annotation);-->
+    <script>
+    // setup
+    const data = {
+      labels: [],
+      datasets: [{
+        label: 'Number of Patients',
+        data: [],
+        backgroundColor: [
+          'rgba(255, 26, 104, 0.2)',
+          'rgba(54, 162, 235, 0.2)',
+          'rgba(255, 206, 86, 0.2)',
+          'rgba(75, 192, 192, 0.2)',
+          'rgba(153, 102, 255, 0.2)',
+          'rgba(255, 159, 64, 0.2)',
+          'rgba(0, 0, 0, 0.2)'
+        ],
+        borderColor: [
+          'rgba(255, 26, 104, 1)',
+          'rgba(54, 162, 235, 1)',
+          'rgba(255, 206, 86, 1)',
+          'rgba(75, 192, 192, 1)',
+          'rgba(153, 102, 255, 1)',
+          'rgba(255, 159, 64, 1)',
+          'rgba(0, 0, 0, 1)'
+        ],
+        borderWidth: 1
+      }]
+    };
+    const data2 = {
+      datasets: [{
+        label: 'Scatter Dataset',
+        data: [],
+        backgroundColor: 'rgb(30, 30, 255)'
+      },{
+        label: 'Scatter Dataset2',
+        data: [{x:2,y:5}],
+        backgroundColor: 'rgb(255, 30, 30)'
+      }],
+
+    };
+
+
+
+    // config
+    const config = {
+      type: 'bar',
+      data,
+      options: {
+        scales: {
+          y: {
+            title: {
+              display: true,
+              text: 'Number of Patients'
+            },
+            beginAtZero: true
+          },
+          x:{
+            title:{
+              display:true
+            }
+
+          }
+        },
+        plugins: {
+          title:{
+           display: true
+
+          },
+
+         legend: {
+            display: false
+         }
+        }
+      }
+    };
+    const config2 = {
+      type: 'scatter',
+      data: data2,
+      options: {
+        scales: {
+          y:{
+            title:{
+              display:true,
+              text:'Age [Years]'
+            }
+
+          },
+
+          x:{
+
+            ticks:{
+              beginAtZero: false
+            }
+          },
+          x: {
+            type: 'linear',
+            position: 'bottom',
+            title:{
+              display:true,
+              text:'BMI [kg/m^2]'
+            }
+          }
+        },
+        plugins:{
+          title:{
+            display: true
+          }
+
+
+        }
+      }
+    };
+
+
+    // render init block
+    let myChart = new Chart(
+      document.getElementById('myChart'),
+      config
+    );
+
+
+
+    // Instantly assign Chart.js version
+    const chartVersion = document.getElementById('chartVersion');
+    chartVersion.innerText = Chart.version;
+
+    function chartValues(value){
+      myChart.destroy();
+      switch(value) {
+      case 'Age':
+        myChart.data.datasets[0].data = {{counts}}[0];
+        myChart.data.labels =["<20", "25-34", "35-44", "45-54","55-64","65-74",">75"];
+        myChart = new Chart(
+        document.getElementById('myChart'),
+        config
+        );
+        myChart.options.plugins.title.text = 'Age of Patients';
+        myChart.options.scales.x.title.text = 'Age [Years]';
+        myChart.update();
+
+        break;
+      case 'Gender':
+        myChart.data.datasets[0].data = {{counts}}[1];
+        myChart.data.labels = ["Female", "Male"];
+        myChart = new Chart(
+        document.getElementById('myChart'),
+        config
+        );
+        myChart.options.plugins.title.text = 'Gender of Patients';
+        myChart.options.scales.x.title.text = '';
+        myChart.update();
+
+        break;
+      case 'BMI':
+        myChart.data.datasets[0].data = {{counts}}[2];
+        myChart.data.labels = [15,16,17,18,19,20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40];
+        myChart = new Chart(
+        document.getElementById('myChart'),
+        config
+        );
+        myChart.options.plugins.title.text = 'BMI of Patients';
+        myChart.options.scales.x.title.text = 'BMI [kg/m^2]';
+        myChart.update();
+
+        break;
+      case 'Indication':
+        myChart.data.datasets[0].data = {{counts}}[3];
+        myChart.data.labels = ["Emergency", "Elective"];
+        myChart = new Chart(
+        document.getElementById('myChart'),
+        config
+        );
+        myChart.options.plugins.title.text = 'Emergency or Elective Surgery';
+        myChart.options.scales.x.title.text = '';
+        myChart.update();
+        break;
+      case 'Type':
+        myChart.data.datasets[0].data = {{counts}}[4];
+        myChart.data.labels = ['Open','TEP','TAPP','rTEP','rTAP','Other'];
+        myChart = new Chart(
+        document.getElementById('myChart'),
+        config
+        );
+        myChart.options.plugins.title.text = 'Type of Surgery';
+        myChart.options.scales.x.title.text = '';
+        myChart.update();
+        break;
+      case 'Mesh':
+        myChart.data.datasets[0].data = {{counts}}[5];
+        myChart.data.labels = ['Non-mesh repair done','Mesh repair done'];
+        myChart = new Chart(
+        document.getElementById('myChart'),
+        config
+        );
+        myChart.options.plugins.title.text = 'Surgery with or without Mesh';
+        myChart.options.scales.x.title.text = '';
+        myChart.update();
+        break;
+      case 'Intraoperative':
+        myChart.data.datasets[0].data = {{counts}}[6];
+        myChart.data.labels = ['No', 'Yes'];
+        myChart = new Chart(
+        document.getElementById('myChart'),
+        config
+        );
+        myChart.options.plugins.title.text = 'Intraoperative Complications';
+        myChart.options.scales.x.title.text = '';
+        myChart.update();
+        break;
+      case 'Problems':
+        myChart.data.datasets[0].data = {{counts}}[7];
+        myChart.data.labels = ['True','False'];
+        myChart = new Chart(
+        document.getElementById('myChart'),
+        config
+        );
+        myChart.options.plugins.title.text = 'Complications after one Day';
+        myChart.options.scales.x.title.text = '';
+        myChart.update();
+        break;
+      case 'Gender_class':
+        myChart = new Chart(
+        document.getElementById('myChart'),
+        config2
+        );
+        const xData_m = {{m_b}};
+        const yData_m = {{m_a}};
+        const data_m = xData_m.map((x, i) => {
+          return {
+            x: x,
+            y: yData_m[i]
+          };
+        });
+        const xData_f = {{f_b}};
+        const yData_f = {{f_a}};
+        const data_f = xData_f.map((x, i) => {
+          return {
+            x: x,
+            y: yData_f[i]
+          };
+        });
+        myChart.config.data.datasets[0].label = "Male";
+        myChart.config.data.datasets[0].data = data_m;
+        myChart.config.data.datasets[1].label = "Female";
+        myChart.config.data.datasets[1].data = data_f;
+        myChart.options.plugins.title.text = 'Gender of Patients (BMI x AGE)';
+        const gender_list = {{gender_list|safe}};
+
+        myChart.options.plugins.annotation.annotations.point1 = {
+          type: 'point',
+          xValue: gender_list[2],
+          yValue: gender_list[3],
+          backgroundColor: 'rgba(255, 0, 0, 0.8)',
+          radius: 7
+        };
+        myChart.options.plugins.annotation.annotations.point2 = {
+          type: 'point',
+          xValue: gender_list[6],
+          yValue: gender_list[7],
+          backgroundColor: 'rgba(0, 0, 255, 0.8)',
+          radius: 7
+        };
+        myChart.options.plugins.annotation.annotations.ellipse1 = {
+          type: 'ellipse',
+          xMin: gender_list[2]-gender_list[0],
+          xMax: gender_list[2]+gender_list[0],
+          yMin: gender_list[3]-gender_list[1],
+          yMax: gender_list[3]+gender_list[1],
+          borderColor: 'rgba(255, 0, 0, 0.8)',
+          borderWidth: 3,
+          backgroundColor:'rgba(0, 0, 0, 0)'
+        };
+        myChart.options.plugins.annotation.annotations.ellipse2 = {
+          type: 'ellipse',
+          xMin: gender_list[2]-gender_list[0]*2,
+          xMax: gender_list[2]+gender_list[0]*2,
+          yMin: gender_list[3]-gender_list[1]*2,
+          yMax: gender_list[3]+gender_list[1]*2,
+          borderColor: 'rgba(255, 0, 0, 0.8)',
+          borderWidth: 3,
+          backgroundColor:'rgba(0, 0, 0, 0)'
+        };
+        myChart.options.plugins.annotation.annotations.ellipse3 = {
+          type: 'ellipse',
+          xMin: gender_list[2]-gender_list[0]*3,
+          xMax: gender_list[2]+gender_list[0]*3,
+          yMin: gender_list[3]-gender_list[1]*3,
+          yMax: gender_list[3]+gender_list[1]*3,
+          borderColor: 'rgba(255, 0, 0, 0.8)',
+          borderWidth: 3,
+          backgroundColor:'rgba(0, 0, 0, 0)'
+        };
+        myChart.options.plugins.annotation.annotations.ellipse4 = {
+          type: 'ellipse',
+          xMin: gender_list[6]-gender_list[4],
+          xMax: gender_list[6]+gender_list[4],
+          yMin: gender_list[7]-gender_list[5],
+          yMax: gender_list[7]+gender_list[5],
+          borderColor: 'rgba(0, 0, 255, 0.8)',
+          borderWidth: 3,
+          backgroundColor:'rgba(0, 0, 0, 0)'
+        };
+        myChart.options.plugins.annotation.annotations.ellipse5 = {
+          type: 'ellipse',
+          xMin: gender_list[6]-gender_list[4]*2,
+          xMax: gender_list[6]+gender_list[4]*2,
+          yMin: gender_list[7]-gender_list[5]*2,
+          yMax: gender_list[7]+gender_list[5]*2,
+          borderColor: 'rgba(0, 0, 255, 0.8)',
+          borderWidth: 3,
+          backgroundColor:'rgba(0, 0, 0, 0)'
+        };
+        myChart.options.plugins.annotation.annotations.ellipse6 = {
+          type: 'ellipse',
+          xMin: gender_list[6]-gender_list[4]*3,
+          xMax: gender_list[6]+gender_list[4]*3,
+          yMin: gender_list[7]-gender_list[5]*3,
+          yMax: gender_list[7]+gender_list[5]*3,
+          borderColor: 'rgba(0, 0, 255, 0.8)',
+          borderWidth: 3,
+          backgroundColor:'rgba(0, 0, 0, 0)'
+        };
+
+        myChart.update();
+        break;
+
+        case 'Problems_class':
+        myChart = new Chart(
+        document.getElementById('myChart'),
+        config2
+        );
+        const xData_c = {{n_b}};
+        const yData_c = {{n_a}};
+        const data_c = xData_c.map((x, i) => {
+          return {
+            x: x,
+            y: yData_c[i]
+          };
+        });
+        const xData_n = {{c_b}};
+        const yData_n = {{c_a}};
+        const data_n = xData_n.map((x, i) => {
+          return {
+            x: x,
+            y: yData_n[i]
+          };
+        });
+        myChart.config.data.datasets[1].label = "Complications";
+        myChart.config.data.datasets[1].data = data_c;
+        myChart.config.data.datasets[0].label = "No complications";
+        myChart.config.data.datasets[0].data = data_n;
+        myChart.options.plugins.title.text = 'Complications after one Day (BMI x AGE)';
+        const problem_list = {{problem_list|safe}};
+
+        myChart.options.plugins.annotation.annotations.point1 = {
+          type: 'point',
+          xValue: problem_list[2],
+          yValue: problem_list[3],
+          backgroundColor: 'rgba(255, 0, 0, 0.8)',
+          radius: 7
+        };
+        myChart.options.plugins.annotation.annotations.point2 = {
+          type: 'point',
+          xValue: problem_list[6],
+          yValue: problem_list[7],
+          backgroundColor: 'rgba(0, 0, 255, 0.8)',
+          radius: 7
+        };
+        myChart.options.plugins.annotation.annotations.ellipse1 = {
+          type: 'ellipse',
+          xMin: problem_list[2]-problem_list[0],
+          xMax: problem_list[2]+problem_list[0],
+          yMin: problem_list[3]-problem_list[1],
+          yMax: problem_list[3]+problem_list[1],
+          borderColor: 'rgba(255, 0, 0, 0.8)',
+          borderWidth: 3,
+          backgroundColor:'rgba(0, 0, 0, 0)'
+        };
+        myChart.options.plugins.annotation.annotations.ellipse2 = {
+          type: 'ellipse',
+          xMin: problem_list[2]-problem_list[0]*2,
+          xMax: problem_list[2]+problem_list[0]*2,
+          yMin: problem_list[3]-problem_list[1]*2,
+          yMax: problem_list[3]+problem_list[1]*2,
+          borderColor: 'rgba(255, 0, 0, 0.8)',
+          borderWidth: 3,
+          backgroundColor:'rgba(0, 0, 0, 0)'
+        };
+        myChart.options.plugins.annotation.annotations.ellipse3 = {
+          type: 'ellipse',
+          xMin: problem_list[2]-problem_list[0]*3,
+          xMax: problem_list[2]+problem_list[0]*3,
+          yMin: problem_list[3]-problem_list[1]*3,
+          yMax: problem_list[3]+problem_list[1]*3,
+          borderColor: 'rgba(255, 0, 0, 0.8)',
+          borderWidth: 3,
+          backgroundColor:'rgba(0, 0, 0, 0)'
+        };
+        myChart.options.plugins.annotation.annotations.ellipse4 = {
+          type: 'ellipse',
+          xMin: problem_list[6]-problem_list[4],
+          xMax: problem_list[6]+problem_list[4],
+          yMin: problem_list[7]-problem_list[5],
+          yMax: problem_list[7]+problem_list[5],
+          borderColor: 'rgba(0, 0, 255, 0.8)',
+          borderWidth: 3,
+          backgroundColor:'rgba(0, 0, 0, 0)'
+        };
+        myChart.options.plugins.annotation.annotations.ellipse5 = {
+          type: 'ellipse',
+          xMin: problem_list[6]-problem_list[4]*2,
+          xMax: problem_list[6]+problem_list[4]*2,
+          yMin: problem_list[7]-problem_list[5]*2,
+          yMax: problem_list[7]+problem_list[5]*2,
+          borderColor: 'rgba(0, 0, 255, 0.8)',
+          borderWidth: 3,
+          backgroundColor:'rgba(0, 0, 0, 0)'
+        };
+        myChart.options.plugins.annotation.annotations.ellipse6 = {
+          type: 'ellipse',
+          xMin: problem_list[6]-problem_list[4]*3,
+          xMax: problem_list[6]+problem_list[4]*3,
+          yMin: problem_list[7]-problem_list[5]*3,
+          yMax: problem_list[7]+problem_list[5]*3,
+          borderColor: 'rgba(0, 0, 255, 0.8)',
+          borderWidth: 3,
+          backgroundColor:'rgba(0, 0, 0, 0)'
+        };
+
+
+
+        myChart.update();
+        }
+
+
+
+
+    }
+
+    </script>
+
+  </body>
+</html>
